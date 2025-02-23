@@ -2,12 +2,16 @@ import os
 import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.error import Forbidden
 
 # Replace with your bot token
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Send me a URL, and I'll upload the file for you!")
+    try:
+        await update.message.reply_text("Send me a URL, and I'll upload the file for you!")
+    except Forbidden:
+        print("The bot was blocked by the user.")
 
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
@@ -20,13 +24,19 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open(file_name, "wb") as file:
                 file.write(response.content)
             # Send the file to the user
-            await update.message.reply_document(document=open(file_name, "rb"))
+            try:
+                await update.message.reply_document(document=open(file_name, "rb"))
+            except Forbidden:
+                print("The bot was blocked by the user.")
             # Clean up
             os.remove(file_name)
         else:
             await update.message.reply_text("Failed to download the file.")
     except Exception as e:
-        await update.message.reply_text(f"An error occurred: {e}")
+        try:
+            await update.message.reply_text(f"An error occurred: {e}")
+        except Forbidden:
+            print("The bot was blocked by the user.")
 
 if __name__ == "__main__":
     # Set up the bot
